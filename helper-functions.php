@@ -76,7 +76,7 @@ echo $t;
 add_action( 'rest_api_init', 'data_route' );
 
 function offers_route() {
-    register_rest_route( 'datanamespace/v1', 'data', array(
+    register_rest_route( 'namespace', 'data', array(
                     'methods' => 'GET',
                     'callback' => 'get_data',
                     'permission_callback' => '__return_true',
@@ -85,7 +85,7 @@ function offers_route() {
 }
 
 
-//Return data of offers on this route
+//Return data on this route
 function get_data() {
 
    $args = array(
@@ -129,4 +129,87 @@ function get_data() {
     // ...
     return $response;
 
+}
+
+/*
+|--------------------------------------------------------------------------
+| Register rest route for obtain data filter by custom taxonomy
+|--------------------------------------------------------------------------
+*/
+
+add_action( 'rest_api_init', 'data_by_taxonomy_route' );
+
+function offer_by_pays_route() {
+    register_rest_route( 'namespace', 'route/(?P<slug>\S+)', array(
+                    'methods' => 'GET',
+                    'callback' => 'get_data_by_taxonomy',
+                    'permission_callback' => '__return_true',
+                )
+            );
+}
+
+
+function get_data_by_taxonomy($params) {
+
+  $args = array(
+    'post_type'          => 'custom post type',
+    'posts_per_page'     => 12,
+    'tax_query'          => array(
+      array(
+          'taxonomy' => 'custom taxonomy',
+          'field'    => 'slug',
+          'terms'    => $params['slug']
+          )
+      ),
+      'paged'              => ($_REQUEST['paged'] ? $_REQUEST['paged'] : 1)
+    );
+
+        $output = array();
+        $posts = get_posts( $args );
+
+        foreach( $posts as $post ) {
+            $output[] = array(
+              'id'          => $post->ID,
+              'title'       => $post->post_title,
+              'content'     => $post->post_content,
+              'link'        => get_permalink($post->ID),
+              'custom taxonomy 1'     => get_the_terms($post->ID, 'custom taxonomy 1'),
+              'custom taxonomy 2'        => get_the_terms($post->ID, 'custom taxonomy 2'),
+              );
+        }
+
+        $response = new WP_REST_Response( $output, 200 );
+        return $response;
+}
+
+/*
+|--------------------------------------------------------------------------
+| Register rest route for obtain single post of post type
+|--------------------------------------------------------------------------
+*/
+
+add_action( 'rest_api_init', 'custom_route' );
+
+function custom_route() {
+    register_rest_route( 'namespace', 'custom_url/(?P<id>[\d]+)', array(
+                    'methods' => 'GET',
+                    'callback' => 'callback_function',
+                    'permission_callback' => '__return_true',
+                )
+            );
+}
+
+
+function callback_funtionc($params) {
+    $post = get_post( $params['id'] );
+
+        $output[] = array( //return data need in array
+          'id'          => $post->ID,
+          'title'       => $post->post_title,
+          'content'     => $post->post_content,
+          );
+
+          $response = new WP_REST_Response( $output, 200 );
+          // ...
+          return $response;
 }
